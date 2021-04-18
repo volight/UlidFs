@@ -4,10 +4,30 @@
     <TargetFramework>net5.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>Ulid</AssemblyName>
+    <Description>Ulid implementation in F#</Description>
+    <Copyright>Volight</Copyright>
+    <Authors>Volight</Authors>
+    <Company>Volight</Company>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/volight/UlidFs</PackageProjectUrl>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <RepositoryUrl>https://github.com/volight/UlidFs</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>ulid</PackageTags>
+    <PackageReleaseNotes>Ulid implementation in F#</PackageReleaseNotes>
+    <PackageId>UlidFs</PackageId>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="ULID.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
