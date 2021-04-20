@@ -4,6 +4,7 @@ open System.Runtime.CompilerServices
 open Microsoft.FSharp.NativeInterop
 open System.Security.Cryptography
 open System.Diagnostics
+open System.Threading
 open System.Buffers
 open System.Linq
 open System
@@ -21,17 +22,51 @@ exception UlidInvalidCharException of char
 
 [<Struct; IsReadOnly; DebuggerDisplay(@"Ulid \{ {_DebugString(),nq} \}")>]
 type Ulid private (lower: uint64, upper: uint64) =
+    static let mutable lastTime = 0UL
+    static let mutable lastRandom = struct (0us, 0UL)
+    static let monotonicLock = new ReaderWriterLockSlim()
+    static let rng = new ThreadLocal<_>(fun () -> new RNGCryptoServiceProvider())
+
     static member Empty = Ulid(0UL, 0UL)
     static member NewUlid() =
         let timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         let timebits = uint64 (timestamp &&& 0x00_00_FF_FF_FF_FF_FF_FFL)
-        use rng = new RNGCryptoServiceProvider()
-        let rbptr = NativePtr.stackalloc<byte>(10) |> NativePtr.toVoidPtr
-        let rspan = Span<byte>(rbptr, 10)
-        rng.GetBytes(rspan)
-        let rspan = ReadOnlySpan<byte>(rbptr, 10)
-        let r1 = BitConverter.ToUInt16(rspan.Slice(0, 2))
-        let r2 = BitConverter.ToUInt64(rspan.Slice(2))
+        let r1, r2 = 
+            if timebits = Interlocked.Exchange(&lastTime, timebits) then 
+                monotonicLock.EnterWriteLock()
+                try
+                    let struct (lo, up) = lastRandom
+                    let x = lo + 1us
+                    let up = if x < lo then up + 1UL else up
+                    lastRandom <- struct (x, up)
+                    monotonicLock.ExitWriteLock()
+                    x, up
+                with
+                | _ ->
+                    monotonicLock.ExitWriteLock()
+                    reraise()
+            else 
+                monotonicLock.EnterUpgradeableReadLock()
+                try
+                    let rbptr = NativePtr.stackalloc<byte>(10) |> NativePtr.toVoidPtr
+                    let rspan = Span<byte>(rbptr, 10)
+                    rng.Value.GetBytes(rspan)
+                    let rspan = ReadOnlySpan<byte>(rbptr, 10)
+                    let r1 = BitConverter.ToUInt16(rspan.Slice(0, 2))
+                    let r2 = BitConverter.ToUInt64(rspan.Slice(2))
+                    monotonicLock.EnterWriteLock()
+                    try
+                        lastRandom <- struct (r1, r2)
+                    with
+                    | _ ->
+                        monotonicLock.ExitWriteLock()
+                        reraise()
+                    monotonicLock.ExitUpgradeableReadLock()
+                    r1, r2
+                with
+                | _ ->
+                    monotonicLock.ExitUpgradeableReadLock()
+                    reraise()
         let t = (timebits <<< 16) ||| (uint64 r1)
         Ulid(t, r2)
     static member New() = Ulid.NewUlid()
@@ -121,14 +156,24 @@ type Ulid private (lower: uint64, upper: uint64) =
     
 [<Struct; IsReadOnly; DebuggerDisplay(@"Slid \{ {_DebugString(),nq} \}")>]
 type Slid (value: uint64) =
+    static let mutable lastTime = 0UL
+    static let mutable lastRandom = 0u
+    static let rng = new ThreadLocal<_>(fun () -> new RNGCryptoServiceProvider())
+
     static member Empty = Slid(0UL)
     static member NewSlid() =
         let timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
         let timebits = uint64 (timestamp &&& 0x00_00_FF_FF_FF_FF_FF_FFL)
-        use rng = new RNGCryptoServiceProvider()
-        let rbptr = NativePtr.stackalloc<byte>(2) |> NativePtr.toVoidPtr
-        rng.GetBytes(Span<byte>(rbptr, 2))
-        let r1 = BitConverter.ToUInt16(ReadOnlySpan<byte>(rbptr, 2))
+        let r1 = 
+            if timebits = Interlocked.Exchange(&lastTime, timebits) then 
+                uint16 <| Interlocked.Increment(&lastRandom)
+            else
+                Interlocked.MemoryBarrier()
+                let rbptr = NativePtr.stackalloc<byte>(2) |> NativePtr.toVoidPtr
+                rng.Value.GetBytes(Span<byte>(rbptr, 2))
+                let r1 = BitConverter.ToUInt16(ReadOnlySpan<byte>(rbptr, 2))
+                Interlocked.Exchange(&lastRandom, uint32 r1) |> ignore
+                r1
         let t = timebits ||| ((uint64 r1) <<< 48)
         Slid(t)
     static member New() = Slid.NewSlid()

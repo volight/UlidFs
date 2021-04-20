@@ -17,6 +17,7 @@
     <PackageTags>ulid</PackageTags>
     <PackageReleaseNotes>Ulid implementation in F#</PackageReleaseNotes>
     <PackageId>UlidFs</PackageId>
+    <Version>1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
