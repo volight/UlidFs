@@ -1,7 +1,7 @@
 # UlidFs
 
 [![.NET](https://github.com/volight/UlidFs/actions/workflows/dotnet.yml/badge.svg)](https://github.com/volight/UlidFs/actions/workflows/dotnet.yml)
-[![NuGet](https://img.shields.io/nuget/v/UlidFs?label=NuGet)](https://www.nuget.org/packages/UlidFs/)
+[![NuGet](https://img.shields.io/nuget/v/UlidFs?label=NuGet)](https://www.nuget.org/packages/Volight.Ulid)
 [![MIT](https://img.shields.io/github/license/volight/UlidFs)](https://github.com/volight/UlidFs/blob/master/LICENSE)
 [![binary](https://img.shields.io/badge/ULID-Binary_Impl-blueviolet)](https://github.com/ulid/spec)
 
