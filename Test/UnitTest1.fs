@@ -2,6 +2,7 @@ module Test
 
 open NUnit.Framework
 open Volight.Ulid
+open System.Threading
 
 [<SetUp>]
 let Setup () =
@@ -20,6 +21,23 @@ let TestUlid2 () =
     let guid = id.ToGuid()
     let id2 = Ulid.FromGuid(guid)
     Assert.AreEqual(id, id2)
+
+[<Test>]
+let TestUlid3 () =
+    let r = seq {
+        for _ = 0 to 100 do 
+        yield async {
+            for _ = 0 to 100 do
+                let id = Ulid.NewUlid()
+                printfn "%s" (id.ToString())
+            ()
+        }
+    }
+    async {
+        for i in r do
+            let! () = i
+            ()
+    } |> Async.StartImmediateAsTask |> System.Threading.Tasks.Task.WaitAll
 
 [<Test>]
 let TestSlid1 () =

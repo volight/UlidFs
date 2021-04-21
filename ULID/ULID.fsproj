@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <AssemblyName>Ulid</AssemblyName>
-    <Description>Ulid implementation in F#</Description>
+    <AssemblyName>Volight.Ulid</AssemblyName>
+    <Description>Fast binary Ulid implementation in F#</Description>
     <Copyright>Volight</Copyright>
     <Authors>Volight</Authors>
     <Company>Volight</Company>
@@ -15,9 +15,10 @@
     <RepositoryUrl>https://github.com/volight/UlidFs</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>ulid</PackageTags>
-    <PackageReleaseNotes>Ulid implementation in F#</PackageReleaseNotes>
-    <PackageId>UlidFs</PackageId>
-    <Version>1.1.1</Version>
+    <PackageReleaseNotes>Fast binary Ulid implementation in F#</PackageReleaseNotes>
+    <PackageId>Volight.Ulid</PackageId>
+    <Version>1.2.0</Version>
+    <PackageIcon>volight.ulid.logo.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,6 +27,10 @@
 
   <ItemGroup>
     <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="volight.ulid.logo.png">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>

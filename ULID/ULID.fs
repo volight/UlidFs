@@ -8,6 +8,8 @@ open System.Threading
 open System.Buffers
 open System.Linq
 open System
+open System.Runtime.InteropServices
+open System.Buffers.Binary
 
 #nowarn "9"
 
@@ -30,23 +32,23 @@ type Ulid private (lower: uint64, upper: uint64) =
     static member Empty = Ulid(0UL, 0UL)
     static member NewUlid() =
         let timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        let timebits = uint64 (timestamp &&& 0x00_00_FF_FF_FF_FF_FF_FFL)
+        let mutable timebits = uint64 ((timestamp &&& 0x00_00_FF_FF_FF_FF_FF_FFL) <<< 16)
         let r1, r2 = 
             if timebits = Interlocked.Exchange(&lastTime, timebits) then 
-                monotonicLock.EnterWriteLock()
+                let locked = monotonicLock.TryEnterWriteLock(1)
                 try
                     let struct (lo, up) = lastRandom
-                    let x = lo + 1us
-                    let up = if x < lo then up + 1UL else up
-                    lastRandom <- struct (x, up)
-                    monotonicLock.ExitWriteLock()
-                    x, up
+                    let x = up + 1UL
+                    let lo = if x < up then lo + 1us else lo
+                    lastRandom <- struct (lo, x)
+                    if locked then monotonicLock.ExitWriteLock()
+                    lo, x
                 with
                 | _ ->
-                    monotonicLock.ExitWriteLock()
+                    if locked then monotonicLock.ExitWriteLock()
                     reraise()
             else 
-                monotonicLock.EnterReadLock()
+                let locked = monotonicLock.TryEnterReadLock(1)
                 try
                     let rbptr = NativePtr.stackalloc<byte>(10) |> NativePtr.toVoidPtr
                     let rspan = Span<byte>(rbptr, 10)
@@ -55,41 +57,37 @@ type Ulid private (lower: uint64, upper: uint64) =
                     let r1 = BitConverter.ToUInt16(rspan.Slice(0, 2))
                     let r2 = BitConverter.ToUInt64(rspan.Slice(2))
                     lastRandom <- struct (r1, r2)
-                    monotonicLock.ExitReadLock()
+                    if locked then monotonicLock.ExitReadLock()
                     r1, r2
                 with
                 | _ ->
-                    monotonicLock.ExitReadLock()
+                    if locked then monotonicLock.ExitReadLock()
                     reraise()
-        let t = (timebits <<< 16) ||| (uint64 r1)
-        Ulid(t, r2)
+        let t = timebits ||| (uint64 r1)
+        Ulid(r2, t)
     static member New() = Ulid.NewUlid()
-    member _.ToBytes() =
+    member s.ToBytes() =
         let bytes = Array.zeroCreate(16)
         let span = Span<byte>(bytes)
-        BitConverter.TryWriteBytes(span.Slice(0, 8), lower) |> ignore
-        BitConverter.TryWriteBytes(span.Slice(8, 8), upper) |> ignore
+        s.WriteBytes(span)
         bytes
-    member _.WriteBytes(span: Span<byte>) =
-        BitConverter.TryWriteBytes(span.Slice(0, 8), lower) |> ignore
-        BitConverter.TryWriteBytes(span.Slice(8, 8), upper) |> ignore
+    member s.WriteBytes(span: Span<byte>) =
+        let mutable s = s
+        MemoryMarshal.Write<Ulid>(span, &s)
     static member FromBytes(span: ReadOnlySpan<byte>) =
-        let lower = BitConverter.ToUInt64(span.Slice(0, 8))
-        let upper = BitConverter.ToUInt64(span.Slice(8, 8))
-        Ulid(lower, upper)
+        MemoryMarshal.Read<Ulid>(span)
     static member FromBytes(bytes: byte []) = Ulid.FromBytes(ReadOnlySpan<byte>(bytes))
-    member _.TimeStamp = lower >>> 16
+    member _.TimeStamp = upper >>> 16
     member self.DateTimeOffset = 
         let stamp = self.TimeStamp
         DateTimeOffset.FromUnixTimeMilliseconds(int64 stamp)
     member self.DateTime = 
         self.DateTimeOffset.DateTime
-    member _.ToGuid() =
+    member s.ToGuid() =
         let bytes = ArrayPool.Shared.Rent(16)
         try
             let span = Span<byte>(bytes)
-            BitConverter.TryWriteBytes(span.Slice(0, 8), lower) |> ignore
-            BitConverter.TryWriteBytes(span.Slice(8, 8), upper) |> ignore
+            s.WriteBytes(span)
             Guid(ReadOnlySpan<byte>(bytes, 0, 16))
         finally
             ArrayPool.Shared.Return(bytes)
