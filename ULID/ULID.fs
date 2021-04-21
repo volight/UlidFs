@@ -24,7 +24,7 @@ exception UlidInvalidCharException of char
 type Ulid private (lower: uint64, upper: uint64) =
     static let mutable lastTime = 0UL
     static let mutable lastRandom = struct (0us, 0UL)
-    static let monotonicLock = new ReaderWriterLockSlim()
+    static let monotonicLock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion)
     static let rng = new ThreadLocal<_>(fun () -> new RNGCryptoServiceProvider())
 
     static member Empty = Ulid(0UL, 0UL)
@@ -46,7 +46,7 @@ type Ulid private (lower: uint64, upper: uint64) =
                     monotonicLock.ExitWriteLock()
                     reraise()
             else 
-                monotonicLock.EnterUpgradeableReadLock()
+                monotonicLock.EnterReadLock()
                 try
                     let rbptr = NativePtr.stackalloc<byte>(10) |> NativePtr.toVoidPtr
                     let rspan = Span<byte>(rbptr, 10)
@@ -54,18 +54,12 @@ type Ulid private (lower: uint64, upper: uint64) =
                     let rspan = ReadOnlySpan<byte>(rbptr, 10)
                     let r1 = BitConverter.ToUInt16(rspan.Slice(0, 2))
                     let r2 = BitConverter.ToUInt64(rspan.Slice(2))
-                    monotonicLock.EnterWriteLock()
-                    try
-                        lastRandom <- struct (r1, r2)
-                    with
-                    | _ ->
-                        monotonicLock.ExitWriteLock()
-                        reraise()
-                    monotonicLock.ExitUpgradeableReadLock()
+                    lastRandom <- struct (r1, r2)
+                    monotonicLock.ExitReadLock()
                     r1, r2
                 with
                 | _ ->
-                    monotonicLock.ExitUpgradeableReadLock()
+                    monotonicLock.ExitReadLock()
                     reraise()
         let t = (timebits <<< 16) ||| (uint64 r1)
         Ulid(t, r2)
@@ -80,9 +74,9 @@ type Ulid private (lower: uint64, upper: uint64) =
         BitConverter.TryWriteBytes(span.Slice(0, 8), lower) |> ignore
         BitConverter.TryWriteBytes(span.Slice(8, 8), upper) |> ignore
     static member FromBytes(span: ReadOnlySpan<byte>) =
-        let part1 = BitConverter.ToUInt64(span.Slice(0, 8))
-        let part2 = BitConverter.ToUInt64(span.Slice(8, 8))
-        Ulid(part1, part2)
+        let lower = BitConverter.ToUInt64(span.Slice(0, 8))
+        let upper = BitConverter.ToUInt64(span.Slice(8, 8))
+        Ulid(lower, upper)
     static member FromBytes(bytes: byte []) = Ulid.FromBytes(ReadOnlySpan<byte>(bytes))
     member _.TimeStamp = lower >>> 16
     member self.DateTimeOffset = 
@@ -102,7 +96,7 @@ type Ulid private (lower: uint64, upper: uint64) =
     static member FromGuid(guid: Guid) =
         let bytes = ArrayPool.Shared.Rent(16)
         try
-            guid.TryWriteBytes(Span<byte>(bytes)) |> ignore
+            guid.TryWriteBytes(Span<byte>(bytes).Slice(0, 16)) |> ignore
             Ulid.FromBytes(bytes)
         finally
             ArrayPool.Shared.Return(bytes)
