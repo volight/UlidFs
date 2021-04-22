@@ -45,3 +45,20 @@ let TestSlid1 () =
     let str = id.ToString()
     let id2 = Slid(str)
     Assert.AreEqual(id, id2)
+
+[<Test>]
+let TestSlid2 () =
+    let r = seq {
+        for _ = 0 to 100 do 
+        yield async {
+            for _ = 0 to 100 do
+                let id = Slid.NewSlid()
+                printfn "%s" (id.ToString())
+            ()
+        }
+    }
+    async {
+        for i in r do
+            let! () = i
+            ()
+    } |> Async.StartImmediateAsTask |> System.Threading.Tasks.Task.WaitAll
