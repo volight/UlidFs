@@ -40,6 +40,23 @@ let TestUlid3 () =
     } |> Async.StartImmediateAsTask |> System.Threading.Tasks.Task.WaitAll
 
 [<Test>]
+let TestUlidP () =
+    let r = seq {
+        for _ = 0 to 100 do 
+        yield async {
+            for _ = 0 to 100 do
+                let id = Ulid.NewUlid()
+                printfn "%s" (id.Prettify())
+            ()
+        }
+    }
+    async {
+        for i in r do
+            let! () = i
+            ()
+    } |> Async.StartImmediateAsTask |> System.Threading.Tasks.Task.WaitAll
+
+[<Test>]
 let TestSlid1 () =
     let id = Slid.NewSlid()
     let str = id.ToString()
@@ -54,6 +71,23 @@ let TestSlid2 () =
             for _ = 0 to 100 do
                 let id = Slid.NewSlid()
                 printfn "%s" (id.ToString())
+            ()
+        }
+    }
+    async {
+        for i in r do
+            let! () = i
+            ()
+    } |> Async.StartImmediateAsTask |> System.Threading.Tasks.Task.WaitAll
+
+[<Test>]
+let TestSlid3 () =
+    let r = seq {
+        for _ = 0 to 100 do 
+        yield async {
+            for _ = 0 to 100 do
+                let id = Slid.NewSlid()
+                printfn "%s" (id.Lexic())
             ()
         }
     }

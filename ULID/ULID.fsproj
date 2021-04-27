@@ -17,7 +17,7 @@
     <PackageTags>ulid</PackageTags>
     <PackageReleaseNotes>Fast binary Ulid implementation in F#</PackageReleaseNotes>
     <PackageId>Volight.Ulid</PackageId>
-    <Version>1.2.0</Version>
+    <Version>1.3.0</Version>
     <PackageIcon>volight.ulid.logo.png</PackageIcon>
   </PropertyGroup>
 

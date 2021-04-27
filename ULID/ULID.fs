@@ -2,14 +2,13 @@ namespace Volight.Ulid
 
 open System.Runtime.CompilerServices
 open Microsoft.FSharp.NativeInterop
+open System.Runtime.InteropServices
 open System.Security.Cryptography
 open System.Diagnostics
 open System.Threading
 open System.Buffers
 open System.Linq
 open System
-open System.Runtime.InteropServices
-open System.Buffers.Binary
 
 #nowarn "9"
 
@@ -110,6 +109,21 @@ type Ulid private (lower: uint64, upper: uint64) =
         finally
             ArrayPool.Shared.Return(buffer)
     member private __._DebugString() = __.ToString()
+    member _.Prettify() =
+        let mutable lo, up = lower, upper
+        let buffer = ArrayPool.Shared.Rent(26)
+        try
+            for i = 0 to 15 do
+                buffer.[15 - i] <- "0123456789ABCDEFGHJKMNPQRSTVWXYZ".[int ((uint lo) &&& 31u)]
+                lo <- (lo >>> 5 ) ||| (up <<< 59)
+                up <- up >>> 5
+            for i = 0 to 9 do
+                buffer.[25 - i] <- "0123456789ABCDEFGHJKMNPQRSTVWXYZ".[int ((uint lo) &&& 31u)]
+                lo <- (lo >>> 5 ) ||| (up <<< 59)
+                up <- up >>> 5
+            String(ReadOnlySpan<char>(buffer, 0, 26))
+        finally
+            ArrayPool.Shared.Return(buffer)
     new(str: ReadOnlySpan<char>) =
         let span = str.Slice(0, 26)
         let mutable lo, up = 0UL, 0UL
@@ -199,6 +213,19 @@ type Slid (value: uint64) =
         finally
             ArrayPool.Shared.Return(buffer)
     member private __._DebugString() = __.ToString()
+    member _.Lexic() =
+        let mutable va = value
+        let buffer = ArrayPool.Shared.Rent(13)
+        try
+            for i = 0 to 8 do
+                buffer.[8 - i] <- "0123456789ABCDEFGHJKMNPQRSTVWXYZ".[int (va &&& 31UL)]
+                va <- va >>> 5
+            for i = 0 to 3 do
+                buffer.[12 - i] <- "0123456789ABCDEFGHJKMNPQRSTVWXYZ".[int (va &&& 31UL)]
+                va <- va >>> 5
+            String(ReadOnlySpan<char>(buffer, 0, 13))
+        finally
+            ArrayPool.Shared.Return(buffer)
     new (str: ReadOnlySpan<char>) = 
         let span = str.Slice(0, 13)
         let mutable va = 0UL
