@@ -103,7 +103,7 @@ type Ulid private (lower: uint64, upper: uint64) =
         try
             for i = 0 to 25 do
                 buffer.[25 - i] <- "0123456789ABCDEFGHJKMNPQRSTVWXYZ".[int ((uint lo) &&& 31u)]
-                lo <- (lo >>> 5 ) ||| (up <<< 59)
+                lo <- (lo >>> 5) ||| (up <<< 59)
                 up <- up >>> 5
             String(ReadOnlySpan<char>(buffer, 0, 26))
         finally
@@ -115,11 +115,11 @@ type Ulid private (lower: uint64, upper: uint64) =
         try
             for i = 0 to 15 do
                 buffer.[15 - i] <- "0123456789ABCDEFGHJKMNPQRSTVWXYZ".[int ((uint lo) &&& 31u)]
-                lo <- (lo >>> 5 ) ||| (up <<< 59)
+                lo <- (lo >>> 5) ||| (up <<< 59)
                 up <- up >>> 5
             for i = 0 to 9 do
                 buffer.[25 - i] <- "0123456789ABCDEFGHJKMNPQRSTVWXYZ".[int ((uint lo) &&& 31u)]
-                lo <- (lo >>> 5 ) ||| (up <<< 59)
+                lo <- (lo >>> 5) ||| (up <<< 59)
                 up <- up >>> 5
             String(ReadOnlySpan<char>(buffer, 0, 26))
         finally

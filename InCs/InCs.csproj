@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>Volight.Ulid</RootNamespace>
+    <AssemblyName>Volight.Ulid</AssemblyName>
+    <LangVersion>9.0</LangVersion>
+    <Version>1.3.0</Version>
+    <Description>Fast binary Ulid implementation in C#</Description>
+    <Copyright>Volight</Copyright>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageProjectUrl>https://github.com/volight/UlidFs</PackageProjectUrl>
+    <PackageIcon>volight.ulid.logo.png</PackageIcon>
+    <RepositoryUrl>https://github.com/volight/UlidFs</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReleaseNotes>Fast binary Ulid implementation in C#</PackageReleaseNotes>
+    <PackageTags>ulid</PackageTags>
+    <PackageId>Volight.Ulid.Cs</PackageId>
+    <Company>Volight</Company>
+    <Authors>Volight</Authors>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="volight.ulid.logo.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>
