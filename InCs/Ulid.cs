@@ -1,11 +1,13 @@
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Security.Cryptography;
 using System.Threading;
+using static Volight.Ulid.Utils;
 
 namespace Volight.Ulid
 {
@@ -19,6 +21,8 @@ namespace Volight.Ulid
             foreach (var (c, i) in "0123456789ABCDEFGHJKMNPQRSTVWXYZ".Select((a, b) => (a, b)))
                 lookup[c] = i;
         }
+
+        public static IEnumerable<int> Range(int from, int to) => Enumerable.Range(from, to + 1);
     }
 
     [Serializable]
@@ -146,7 +150,7 @@ namespace Volight.Ulid
             var buffer = ArrayPool<char>.Shared.Rent(26);
             try
             {
-                foreach (var i in Enumerable.Range(0, 25))
+                foreach (var i in Range(0, 25))
                 {
                     buffer[25 - i] = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"[(int)((uint)lo & 31u)];
                     lo = (lo >> 5) | (up << 59);
@@ -168,13 +172,13 @@ namespace Volight.Ulid
             var buffer = ArrayPool<char>.Shared.Rent(26);
             try
             {
-                foreach (var i in Enumerable.Range(0, 15))
+                foreach (var i in Range(0, 15))
                 {
                     buffer[15 - i] = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"[(int)((uint)lo & 31u)];
                     lo = (lo >> 5) | (up << 59);
                     up >>= 5;
                 }
-                foreach (var i in Enumerable.Range(0, 9))
+                foreach (var i in Range(0, 9))
                 {
                     buffer[25 - i] = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"[(int)((uint)lo & 31u)];
                     lo = (lo >> 5) | (up << 59);
@@ -192,11 +196,11 @@ namespace Volight.Ulid
         {
             var span = str.Slice(0, 26);
             ulong lo = 0UL, up = 0UL;
-            foreach (var i in Enumerable.Range(0, 25))
+            foreach (var i in Range(0, 25))
             {
                 var c = span[i];
                 if (c > 'z') throw new UlidInvalidCharException(c);
-                var n = Utils.lookup[c];
+                var n = lookup[c];
                 if (n < 0) throw new UlidInvalidCharException(c);
                 var n2 = (ulong)n;
                 up = (up << 5) | (lo >> 59);
@@ -217,11 +221,11 @@ namespace Volight.Ulid
         {
             if (str.Length < 26) { ulid = default; return false; }
             ulong lo = 0UL, up = 0UL;
-            foreach (var i in Enumerable.Range(0, 25))
+            foreach (var i in Range(0, 25))
             {
                 var c = str[i];
                 if (c > 'z') { ulid = default; return false; }
-                var n = Utils.lookup[c];
+                var n = lookup[c];
                 if (n < 0) { ulid = default; return false; }
                 var n2 = (ulong)n;
                 up = (up << 5) | (lo >> 59);
@@ -308,7 +312,7 @@ namespace Volight.Ulid
             var buffer = ArrayPool<char>.Shared.Rent(13);
             try
             {
-                foreach (var i in Enumerable.Range(0, 12))
+                foreach (var i in Range(0, 12))
                 {
                     buffer[12 - i] = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"[(int)(va & 31UL)];
                     va >>= 5;
@@ -327,12 +331,12 @@ namespace Volight.Ulid
             var buffer = ArrayPool<char>.Shared.Rent(13);
             try
             {
-                foreach (var i in Enumerable.Range(0, 8))
+                foreach (var i in Range(0, 8))
                 {
                     buffer[8 - i] = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"[(int)(va & 31UL)];
                     va >>= 5;
                 }
-                foreach (var i in Enumerable.Range(0, 3))
+                foreach (var i in Range(0, 3))
                 {
                     buffer[12 - i] = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"[(int)(va & 31UL)];
                     va >>= 5;
@@ -349,11 +353,11 @@ namespace Volight.Ulid
         {
             var span = str.Slice(0, 13);
             var va = 0UL;
-            foreach (var i in Enumerable.Range(0, 12))
+            foreach (var i in Range(0, 12))
             {
                 var c = span[i];
                 if (c > 'z') throw new UlidInvalidCharException(c);
-                var n = Utils.lookup[c];
+                var n = lookup[c];
                 if (c < 0) throw new UlidInvalidCharException(c);
                 var n2 = (ulong)n;
                 va = (va << 5) | n2;
@@ -373,11 +377,11 @@ namespace Volight.Ulid
         {
             if (str.Length < 13) { slid = default; return false; }
             var va = 0UL;
-            foreach (var i in Enumerable.Range(0, 12))
+            foreach (var i in Range(0, 12))
             {
                 var c = str[i];
                 if (c > 'z') { slid = default; return false; }
-                var n = Utils.lookup[c];
+                var n = lookup[c];
                 if (c < 0) { slid = default; return false; }
                 var n2 = (ulong)n;
                 va = (va << 5) | n2;
@@ -385,6 +389,9 @@ namespace Volight.Ulid
             slid = new Slid(va);
             return true;
         }
+        public static bool TryParse(Span<char> str, out Slid slid) => TryParse((ReadOnlySpan<char>)str, out slid);
+        public static bool TryParse(char[] str, out Slid slid) => TryParse(new ReadOnlySpan<char>(str), out slid);
+        public static bool TryParse(string str, out Slid slid) => TryParse(str.AsSpan(), out slid);
     }
 
     public static class UlidEx
